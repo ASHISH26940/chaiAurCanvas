@@ -1,17 +1,14 @@
 "use client";
 import React from 'react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Square, Circle, Type, Pencil, MousePointer, Move, Eraser, Hand, Trash2, Image, Lock, ChevronDown } from 'lucide-react';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { Square, Type, Pencil, MousePointer, Move, Eraser, Hand, Trash2, Image, Lock, ChevronDown } from 'lucide-react';
 interface Tool {
     id: string;
     toolId: number;  // Changed to number to match the existing toolId values
     icon?: JSX.Element;
 }
 
-interface Point {
-    x: number;
-    y: number;
-}
+
 
 interface DrawingElement {
     points: [number, number][]; // Ensure points are defined as an array of coordinates
@@ -30,13 +27,14 @@ const App: React.FC = () => {
     const [panOffset, setPanOffset] = useState<[number, number, number, number, number, number]>([0, 0, 0, 0, 0, 0]);
     const [strokeWidth, setStrokeWidth] = useState<number>(5);
     const [opacity, setOpacity] = useState<number>(100);
-    const [isFilled, setIsFilled] = useState<boolean>(false);
+    const [isFilled] = useState<boolean>(false);
     const [selectedElement, setSelectedElement] = useState<[number, number, number] | null>(null);
     const [currentColor, setCurrentColor] = useState<string>("#000000");
     const [isLocked, setIsLocked] = useState<boolean>(false);
     const [zoomLevel, setZoomLevel] = useState<number>(1);
     const [scaledOffset, setScaledOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-    const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
+    //const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
+    const [windowDimension, setWindowDimension] = useState({ width: 0, height: 0 });
 
     const tools: Tool[] = [
         { id: 'select', icon: <MousePointer size={20} />, toolId: 5 },
@@ -44,7 +42,7 @@ const App: React.FC = () => {
         { id: 'draw', icon: <Pencil size={20} />, toolId: 1 },
         { id: 'shapes', icon: <Square size={20} />, toolId: 3 },
         { id: 'text', icon: <Type size={20} />, toolId: 6 },
-        { id: 'image', icon: <Image size={20} />, toolId: 7 },
+        { id: 'image', icon: <Image size={20} /* eslint-disable-line jsx-a11y/alt-text */ />, toolId: 7 },
         { id: 'eraser', icon: <Eraser size={20} />, toolId: 7 }
     ];
 
@@ -58,6 +56,12 @@ const App: React.FC = () => {
         "#FFC0CB",
         "#A52A2A"
     ];
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setWindowDimension({ width: window.innerWidth, height: window.innerHeight });
+        }
+    }, []);
 
     // Keep all the existing utility functions (isPointOnLine, findElementAt, etc.)
     // ... (previous implementation remains the same)
@@ -324,9 +328,13 @@ const App: React.FC = () => {
 
             switch (element.id) {
                 case 1: // Freehand
-                    element.points.forEach((point, i) => {
-                        i === 0 ? ctx.moveTo(...point) : ctx.lineTo(...point);
-                    });
+                    for (const [index, point] of element.points.entries()) {
+                        if (index === 0) {
+                            ctx.moveTo(...point); // Move to the first point
+                        } else {
+                            ctx.lineTo(...point); // Draw lines to subsequent points
+                        }
+                    }
                     break;
 
                 case 2: // Line
@@ -362,8 +370,8 @@ const App: React.FC = () => {
             <canvas
                 id="canvas"
                 className={`absolute inset-0 ${isLocked ? 'cursor-not-allowed' : 'cursor-crosshair'}`}
-                width={window.innerWidth}
-                height={window.innerHeight}
+                width={windowDimension.width}
+                height={windowDimension.height}
                 onMouseDown={!isLocked ? handleMouseDown : undefined}
                 onMouseMove={!isLocked ? handleMouseMove : undefined}
                 onMouseUp={!isLocked ? handleMouseUp : undefined}
@@ -471,7 +479,7 @@ const App: React.FC = () => {
                             ))}
                             <button
                                 className="w-6 h-6 rounded-full border border-neutral-300 bg-white text-center text-xs leading-6"
-                                onClick={() => setShowColorPicker(true)}
+                                // onClick={() => setShowColorPicker(true)}
                                 disabled={isLocked}
                             >
                                 +
